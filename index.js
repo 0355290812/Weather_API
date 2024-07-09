@@ -9,7 +9,7 @@ app.use(express.urlencoded({ extended: true }));
 // API Key của bạn cho OpenWeather
 const API_KEY = 'bdd3e532f125037ef36883ee554619f5';
 
-let lastCity = 'Ha Noi';
+let lastCity = 'Hanoi';
 
 // Danh sách tên các tỉnh thành ở Việt Nam
 const vietnamCities = [
