@@ -10,6 +10,8 @@ app.use(express.urlencoded({ extended: true }));
 const API_KEY = 'bdd3e532f125037ef36883ee554619f5';
 
 let lastCity = 'Hanoi';
+let lastLat = 21.0245;
+let lastLon = 105.8412;
 
 // Danh sách tên các tỉnh thành ở Việt Nam
 const vietnamCities = [
@@ -58,47 +60,30 @@ function normalizeCityName(cityName) {
     .replace(/\s/g, '').toLowerCase();
 }
 
-// Định nghĩa route GET /q={City name}
-app.get('/q=:cityName', async (req, res) => {
-    lastCity = req.params.cityName;
-  const cityName = req.params.cityName;
-  const stateCode = ''; // Để trống nếu không cần
-  const countryCode = 'VN'; // Mã quốc gia Việt Nam
-  const limit = 1; // Số lượng kết quả giới hạn
+app.get('/weather', async (req, res) => {
+  const cityName = req.query.q;
+  const lat = req.query.lat;
+  const lon = req.query.lon;
 
-  // Tạo URL cho API call để lấy thông tin địa lý
-  const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${cityName},${stateCode},${countryCode}&limit=${limit}&appid=${API_KEY}`;
+  lastCity = cityName;
+  lastLat = lat;
+  lastLon = lon;
 
   try {
-    // Gửi request đến OpenWeather API để lấy thông tin địa lý
-    const geoResponse = await axios.get(geoUrl);
-    const geoData = geoResponse.data;
-
-    if (geoData.length === 0) {
-      res.status(404).send('Không tìm thấy thông tin địa lý của tỉnh thành!');
-      return;
-    }
-
-    const { lat, lon } = geoData[0];
-
-    // Tạo URL cho API call để lấy thông tin thời tiết hiện tại
+    
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
 
     // Gửi request đến OpenWeather API để lấy thông tin thời tiết
     const weatherResponse = await axios.get(weatherUrl);
     const weatherData = weatherResponse.data;
 
-    // Tên thành phố nhận được từ OpenWeather
-    const cityFromAPI = normalizeCityName(geoData[0].name);
 
     // Chuẩn hóa danh sách các thành phố Việt Nam để so sánh
-    let matchedCity = vietnamCities.find(city => normalizeCityName(city) === normalizeCityName(cityFromAPI));
-    console.log(matchedCity);
-    // Tìm tên thành phố khớp trong danh sách Việt Nam
+    let matchedCity = vietnamCities.find(city => normalizeCityName(city) === normalizeCityName(weatherData.name));
 
     // Nếu không tìm thấy tên thành phố khớp, sử dụng tên từ API
     if (!matchedCity) {
-      matchedCity = cityFromAPI;
+      matchedCity = weatherData.name;
     }
 
     // Cập nhật tên thành phố trong kết quả trả về
@@ -107,7 +92,7 @@ app.get('/q=:cityName', async (req, res) => {
                         .trim()
                         .replace(/\b\w/g, char => char.toUpperCase());
 
-    if (weatherData.name === "Ba Ria" || weatherData.name === "Vung Tau") {
+    if (weatherData.name === "Ba Ria" || weatherData.name === "Vung Tau" || weatherData.name === "Tinh Ba Ria-Vung Tau") {
       weatherData.name = "Ba Ria - Vung Tau";
     }
 
@@ -122,7 +107,7 @@ app.get('/q=:cityName', async (req, res) => {
 
 
 app.get('/last', async (req, res) => {
-    res.redirect(`/q=${lastCity}`);
+    res.redirect(`/weather?q=${lastCity}&lat=${lastLat}&lon=${lastLon}`);
 });
 
 app.listen(port, () => {
