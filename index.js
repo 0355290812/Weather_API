@@ -107,7 +107,40 @@ app.get('/weather', async (req, res) => {
 
 
 app.get('/last', async (req, res) => {
-    res.redirect(`/weather?q=${lastCity}&lat=${lastLat}&lon=${lastLon}`);
+  try {
+    
+    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lastLat}&lon=${lastLon}&appid=${API_KEY}`;
+
+    // Gửi request đến OpenWeather API để lấy thông tin thời tiết
+    const weatherResponse = await axios.get(weatherUrl);
+    const weatherData = weatherResponse.data;
+
+
+    // Chuẩn hóa danh sách các thành phố Việt Nam để so sánh
+    let matchedCity = vietnamCities.find(city => normalizeCityName(city) === normalizeCityName(weatherData.name));
+
+    // Nếu không tìm thấy tên thành phố khớp, sử dụng tên từ API
+    if (!matchedCity) {
+      matchedCity = weatherData.name;
+    }
+
+    // Cập nhật tên thành phố trong kết quả trả về
+    weatherData.name = removeVietnameseTone(matchedCity)
+                        // .replace(/\s+/g, ' ')
+                        .trim()
+                        .replace(/\b\w/g, char => char.toUpperCase());
+
+    if (weatherData.name === "Ba Ria" || weatherData.name === "Vung Tau" || weatherData.name === "Tinh Ba Ria-Vung Tau") {
+      weatherData.name = "Ba Ria - Vung Tau";
+    }
+
+    // Trả về kết quả thời tiết nhận được từ OpenWeather
+    res.json(weatherData);
+  } catch (error) {
+    // Xử lý lỗi nếu có
+    console.error(error);
+    res.status(500).send('Có lỗi xảy ra!');
+  }
 });
 
 app.listen(port, () => {
